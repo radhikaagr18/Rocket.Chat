@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { PositionAnimated, AnimatedVisibility, Menu, Option } from '@rocket.chat/fuselage';
 import { useMutableCallback } from '@rocket.chat/fuselage-hooks';
 
@@ -10,24 +10,14 @@ import { Backdrop } from '../../components/basic/Backdrop';
 import * as UserStatus from '../../components/basic/UserStatus';
 import { LocalTime } from '../../components/basic/UTCClock';
 import { useUserInfoActions, useUserInfoActionsSpread } from '../hooks/useUserInfoActions';
+import { useComponentDidUpdate } from '../../hooks/useComponentDidUpdate';
 import { useCurrentRoute } from '../../contexts/RouterContext';
-
-export const useComponentDidUpdate = (
-	effect,
-	dependencies = [],
-) => {
-	const hasMounted = useRef(false);
-	useEffect(() => {
-		if (!hasMounted.current) {
-			hasMounted.current = true;
-			return;
-		}
-		effect();
-	}, dependencies);
-};
+import { useRolesDescription } from '../../contexts/AuthorizationContext';
 
 const UserCardWithData = ({ username, onClose, target, open, rid }) => {
 	const ref = useRef(target);
+
+	const getRoles = useRolesDescription();
 
 	const t = useTranslation();
 
@@ -60,16 +50,18 @@ const UserCardWithData = ({ username, onClose, target, open, rid }) => {
 			bio = defaultValue,
 			utcOffset = defaultValue,
 			nickname,
+			avatarETag,
 		} = user;
 
 		return {
 			_id,
 			name: showRealNames ? name : username,
 			username,
-			roles: roles && roles.map((role, index) => (
+			roles: roles && getRoles(roles).map((role, index) => (
 				<UserCard.Role key={index}>{role}</UserCard.Role>
 			)),
 			bio,
+			etag: avatarETag,
 			localTime: Number.isInteger(utcOffset) && (
 				<LocalTime utcOffset={utcOffset} />
 			),
@@ -77,7 +69,7 @@ const UserCardWithData = ({ username, onClose, target, open, rid }) => {
 			customStatus: statusText,
 			nickname,
 		};
-	}, [data, username, showRealNames, state]);
+	}, [data, username, showRealNames, state, getRoles]);
 
 	const handleOpen = useMutableCallback((e) => {
 		open && open(e);
